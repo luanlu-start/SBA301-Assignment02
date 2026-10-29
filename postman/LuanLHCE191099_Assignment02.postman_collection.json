@@ -1,0 +1,650 @@
+{
+  "info": {
+    "_postman_id": "4843b091-6c5c-4267-814c-fc02440480af",
+    "name": "SBA301 Assignment 02 - LuanLH",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run in order. Requests create temporary records and delete them at the end. Start the backend with the sample accounts from README."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082/api"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "invalidToken",
+      "value": "invalid.jwt.token"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get(\"runId\")) {",
+          "  pm.collectionVariables.set(\"runId\", String(Date.now()));",
+          "  const start = new Date(); start.setDate(start.getDate() + 90);",
+          "  const end = new Date(start); end.setDate(end.getDate() + 2);",
+          "  pm.collectionVariables.set(\"startDate\", start.toISOString().slice(0,10));",
+          "  pm.collectionVariables.set(\"endDate\", end.toISOString().slice(0,10));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Public active news",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/public/news",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Only active news\", () => pm.response.json().forEach(n => pm.expect(n.status).to.eql(1)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Admin login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@funews.local\",\n  \"password\": \"Admin@123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "{",
+              "const assignmentResponse = pm.response.json();",
+              "pm.collectionVariables.set(\"adminToken\", assignmentResponse.token);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Create test Staff",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Staff\",\n  \"email\": \"pm.staff.{{runId}}@example.com\",\n  \"password\": \"Postman@123\",\n  \"role\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "{",
+              "const assignmentResponse = pm.response.json();",
+              "pm.collectionVariables.set(\"staffId\", assignmentResponse.id);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Staff login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"pm.staff.{{runId}}@example.com\",\n  \"password\": \"Postman@123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "{",
+              "const assignmentResponse = pm.response.json();",
+              "pm.collectionVariables.set(\"staffToken\", assignmentResponse.token);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Staff cannot manage accounts",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Create category",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman category {{runId}}\",\n  \"description\": \"Collection verification\",\n  \"status\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "{",
+              "const assignmentResponse = pm.response.json();",
+              "pm.collectionVariables.set(\"categoryId\", assignmentResponse.id);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Create article with tags",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/news",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman article {{runId}}\",\n  \"headline\": \"Collection example\",\n  \"content\": \"Created through Postman and stored in SQL Server.\",\n  \"source\": \"Postman collection\",\n  \"categoryId\": {{categoryId}},\n  \"status\": 1,\n  \"tags\": [\n    {\n      \"name\": \"postman\",\n      \"note\": \"API verification\"\n    },\n    {\n      \"name\": \"campus\",\n      \"note\": \"Campus life\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "{",
+              "const assignmentResponse = pm.response.json();",
+              "pm.collectionVariables.set(\"newsId\", assignmentResponse.id);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Read public article",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/public/news/{{newsId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Two tags\", () => pm.expect(pm.response.json().tags.length).to.eql(2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Search news",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/news?q=Postman",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Own news history",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/news/history",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Own articles only\", () => pm.response.json().forEach(n => pm.expect(n.createdById).to.eql(Number(pm.collectionVariables.get(\"staffId\")))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Cannot delete author",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{{staffId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Cannot delete used category",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/categories/{{categoryId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Update article to inactive",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/news/{{newsId}}",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman article {{runId}}\",\n  \"headline\": \"Collection example\",\n  \"content\": \"Created through Postman and stored in SQL Server.\",\n  \"source\": \"Postman collection\",\n  \"categoryId\": {{categoryId}},\n  \"status\": 0,\n  \"tags\": [\n    {\n      \"name\": \"postman\",\n      \"note\": \"API verification\"\n    },\n    {\n      \"name\": \"campus\",\n      \"note\": \"Campus life\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Inactive article is not public",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/public/news/{{newsId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Update category",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories/{{categoryId}}",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman category edited {{runId}}\",\n  \"description\": \"Edited description\",\n  \"status\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Read own profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/profile",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 Delete test article",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/news/{{newsId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 Delete test category",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{staffToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/categories/{{categoryId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 Delete test Staff",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{{staffId}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
