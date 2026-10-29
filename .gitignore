@@ -1,0 +1,9 @@
+backend/target/
+frontend/node_modules/
+frontend/dist/
+**/application-local.properties
+.idea/
+*.iml
+*.log
+.env.local
+test-results/
