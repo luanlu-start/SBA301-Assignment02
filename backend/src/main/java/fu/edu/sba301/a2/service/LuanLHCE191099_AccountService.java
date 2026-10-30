@@ -1,8 +1,8 @@
 package fu.edu.sba301.a2.service;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountResponse;
-import fu.edu.sba301.a2.dto.LuanLHCE191099_ProfileInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_ProfileRequest;
 import fu.edu.sba301.a2.entity.LuanLHCE191099_Account;
 import fu.edu.sba301.a2.exception.LuanLHCE191099_ApiException;
 import fu.edu.sba301.a2.repository.LuanLHCE191099_AccountRepository;
@@ -72,7 +72,7 @@ public class LuanLHCE191099_AccountService {
     }
 
     @Transactional
-    public LuanLHCE191099_AccountResponse createAccount(LuanLHCE191099_AccountInput input) {
+    public LuanLHCE191099_AccountResponse createAccount(LuanLHCE191099_AccountRequest input) {
         LuanLHCE191099_Account account = new LuanLHCE191099_Account();
         applyInput(account, input);
 
@@ -84,7 +84,7 @@ public class LuanLHCE191099_AccountService {
     @Transactional
     public LuanLHCE191099_AccountResponse updateAccount(
         Long accountId,
-        LuanLHCE191099_AccountInput input
+        LuanLHCE191099_AccountRequest input
     ) {
         LuanLHCE191099_Account account = findAccountOrThrow(accountId);
         boolean removesAdminRole = account.getRole() == 1 && input.role() != 1;
@@ -124,12 +124,12 @@ public class LuanLHCE191099_AccountService {
     @Transactional
     public LuanLHCE191099_AccountResponse updateProfile(
         Long currentUserId,
-        LuanLHCE191099_ProfileInput input
+        LuanLHCE191099_ProfileRequest input
     ) {
         LuanLHCE191099_Account account = findAccountOrThrow(currentUserId);
 
         // The existing account supplies the role, so a profile edit cannot grant Admin access.
-        LuanLHCE191099_AccountInput accountInput = new LuanLHCE191099_AccountInput(
+        LuanLHCE191099_AccountRequest accountInput = new LuanLHCE191099_AccountRequest(
             input.name(),
             input.email(),
             input.password(),
@@ -141,7 +141,7 @@ public class LuanLHCE191099_AccountService {
         return toResponse(savedAccount);
     }
 
-    private void applyInput(LuanLHCE191099_Account account, LuanLHCE191099_AccountInput input) {
+    private void applyInput(LuanLHCE191099_Account account, LuanLHCE191099_AccountRequest input) {
         String email = input.email().trim().toLowerCase(Locale.ROOT);
         Optional<LuanLHCE191099_Account> existingAccount = accountRepository.findByEmailIgnoreCase(
             email

@@ -102,7 +102,7 @@ PublicController gọi `getPublicNews`/`getPublicNewsById` để chỉ trả tin
 
 ## 7. Profile, F5 và Sign out
 
-ProfilePage gọi `/api/profile` để đọc/sửa account của chính Staff. ProfileInput không có role. Sau khi lưu, `refresh()` gọi `/auth/me` để cập nhật user trên menu và trong session.
+ProfilePage gọi `/api/profile` để đọc/sửa account của chính Staff. ProfileRequest không có role. Sau khi lưu, `refresh()` gọi `/auth/me` để cập nhật user trên menu và trong session.
 
 F5 làm React state khởi tạo lại, nhưng cookie phiên vẫn còn: AuthProvider gọi `/auth/me` để khôi phục user. Phiên hết hạn sau 30 phút không hoạt động.
 

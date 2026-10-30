@@ -1,6 +1,6 @@
 package fu.edu.sba301.a2.controller;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_CategoryInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_CategoryRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_CategoryResponse;
 import fu.edu.sba301.a2.service.LuanLHCE191099_CategoryService;
 import jakarta.validation.Valid;
@@ -55,7 +55,7 @@ public class LuanLHCE191099_CategoryController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LuanLHCE191099_CategoryResponse createCategory(
-        @Valid @RequestBody LuanLHCE191099_CategoryInput input
+        @Valid @RequestBody LuanLHCE191099_CategoryRequest input
     ) {
         return categoryService.createCategory(input);
     }
@@ -64,7 +64,7 @@ public class LuanLHCE191099_CategoryController {
     @PutMapping("/{id}")
     public LuanLHCE191099_CategoryResponse updateCategory(
         @PathVariable Long id,
-        @Valid @RequestBody LuanLHCE191099_CategoryInput input
+        @Valid @RequestBody LuanLHCE191099_CategoryRequest input
     ) {
         return categoryService.updateCategory(id, input);
     }

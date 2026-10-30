@@ -1,6 +1,6 @@
 package fu.edu.sba301.a2.controller;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_NewsInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_NewsRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_NewsResponse;
 import fu.edu.sba301.a2.security.LuanLHCE191099_UserPrincipal;
 import fu.edu.sba301.a2.service.LuanLHCE191099_NewsService;
@@ -62,7 +62,7 @@ public class LuanLHCE191099_NewsController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LuanLHCE191099_NewsResponse createNews(
-        @Valid @RequestBody LuanLHCE191099_NewsInput input,
+        @Valid @RequestBody LuanLHCE191099_NewsRequest input,
         @AuthenticationPrincipal LuanLHCE191099_UserPrincipal user
     ) {
         // The server assigns CreatedBy from the authenticated Staff principal; the browser cannot choose the author.
@@ -73,7 +73,7 @@ public class LuanLHCE191099_NewsController {
     @PutMapping("/{id}")
     public LuanLHCE191099_NewsResponse updateNews(
         @PathVariable Long id,
-        @Valid @RequestBody LuanLHCE191099_NewsInput input,
+        @Valid @RequestBody LuanLHCE191099_NewsRequest input,
         @AuthenticationPrincipal LuanLHCE191099_UserPrincipal user
     ) {
         // Record the actual editor as UpdatedBy while preserving the original author.

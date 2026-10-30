@@ -1,6 +1,6 @@
 package fu.edu.sba301.a2.service;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_CategoryInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_CategoryRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_CategoryResponse;
 import fu.edu.sba301.a2.entity.LuanLHCE191099_Category;
 import fu.edu.sba301.a2.exception.LuanLHCE191099_ApiException;
@@ -55,7 +55,7 @@ public class LuanLHCE191099_CategoryService {
     }
 
     @Transactional
-    public LuanLHCE191099_CategoryResponse createCategory(LuanLHCE191099_CategoryInput input) {
+    public LuanLHCE191099_CategoryResponse createCategory(LuanLHCE191099_CategoryRequest input) {
         LuanLHCE191099_Category category = new LuanLHCE191099_Category();
         applyInput(category, input);
         return toResponse(categoryRepository.saveAndFlush(category));
@@ -64,7 +64,7 @@ public class LuanLHCE191099_CategoryService {
     @Transactional
     public LuanLHCE191099_CategoryResponse updateCategory(
         Long categoryId,
-        LuanLHCE191099_CategoryInput input
+        LuanLHCE191099_CategoryRequest input
     ) {
         LuanLHCE191099_Category category = findCategoryOrThrow(categoryId);
         applyInput(category, input);
@@ -87,7 +87,10 @@ public class LuanLHCE191099_CategoryService {
         categoryRepository.flush();
     }
 
-    private void applyInput(LuanLHCE191099_Category category, LuanLHCE191099_CategoryInput input) {
+    private void applyInput(
+        LuanLHCE191099_Category category,
+        LuanLHCE191099_CategoryRequest input
+    ) {
         LuanLHCE191099_Category parent = null;
         if (input.parentId() != null) {
             parent = findCategoryOrThrow(input.parentId());

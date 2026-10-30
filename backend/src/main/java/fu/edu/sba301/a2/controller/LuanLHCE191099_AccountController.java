@@ -1,6 +1,6 @@
 package fu.edu.sba301.a2.controller;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountResponse;
 import fu.edu.sba301.a2.security.LuanLHCE191099_UserPrincipal;
 import fu.edu.sba301.a2.service.LuanLHCE191099_AccountService;
@@ -57,7 +57,7 @@ public class LuanLHCE191099_AccountController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LuanLHCE191099_AccountResponse createAccount(
-        @Valid @RequestBody LuanLHCE191099_AccountInput input
+        @Valid @RequestBody LuanLHCE191099_AccountRequest input
     ) {
         return accountService.createAccount(input);
     }
@@ -66,7 +66,7 @@ public class LuanLHCE191099_AccountController {
     @PutMapping("/{id}")
     public LuanLHCE191099_AccountResponse updateAccount(
         @PathVariable Long id,
-        @Valid @RequestBody LuanLHCE191099_AccountInput input
+        @Valid @RequestBody LuanLHCE191099_AccountRequest input
     ) {
         return accountService.updateAccount(id, input);
     }

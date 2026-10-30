@@ -1,6 +1,6 @@
 package fu.edu.sba301.a2.service;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_LoginInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_LoginRequest;
 import fu.edu.sba301.a2.entity.LuanLHCE191099_Account;
 import fu.edu.sba301.a2.exception.LuanLHCE191099_ApiException;
 import fu.edu.sba301.a2.repository.LuanLHCE191099_AccountRepository;
@@ -25,7 +25,7 @@ public class LuanLHCE191099_AuthService {
     }
 
     // Find the account, verify its password and return safe identity information.
-    public LuanLHCE191099_UserPrincipal authenticate(LuanLHCE191099_LoginInput input) {
+    public LuanLHCE191099_UserPrincipal authenticate(LuanLHCE191099_LoginRequest input) {
         LuanLHCE191099_Account account = accountRepository
             .findByEmailIgnoreCase(input.email().trim())
             .orElseThrow(() ->

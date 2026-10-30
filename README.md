@@ -66,7 +66,7 @@ Vì dùng cookie, Spring bật bảo vệ CSRF cho request ghi dữ liệu. Axio
 
 Đọc [hướng dẫn chi tiết toàn bộ Assignment 02](HUONG_DAN_ASSIGNMENT02_CHI_TIET.md): đối chiếu A1 → A2, cấu trúc thư mục, đăng nhập/session, từng luồng CRUD, code quan trọng và cách tự kiểm tra. [Bản đọc nhanh theo luồng](docs/HUONG_DAN_THEO_LUONG.md) giúp tra cứu khi chạy bài.
 
-Frontend chia thành `pages`, `components/Layout`, `components/Common`, `context`, `hooks` và `services`. Backend có ba tầng Controller -> Service -> Repository. Mỗi DTO có file riêng. Bốn entity dùng Lombok `@Getter`, `@Setter`, `@NoArgsConstructor` để sinh getter/setter và constructor rỗng. Entity ánh xạ bảng; SecurityConfig thiết lập session và phân quyền.
+Frontend chia thành `pages`, `components/Layout`, `components/Common`, `context`, `hooks` và `services`. Backend có ba tầng Controller -> Service -> Repository. Mỗi DTO có file riêng: DTO nhận dữ liệu dùng hậu tố `Request`, DTO trả dữ liệu dùng hậu tố `Response`. Bốn entity dùng Lombok `@Getter`, `@Setter`, `@NoArgsConstructor` để sinh getter/setter và constructor rỗng. Entity ánh xạ bảng; SecurityConfig thiết lập session và phân quyền.
 
 File Java/JS/JSX/CSS dùng tiền tố `LuanLHCE191099_`; các file cấu hình giữ tên chuẩn. Comment trong source dùng tiếng Anh.
 

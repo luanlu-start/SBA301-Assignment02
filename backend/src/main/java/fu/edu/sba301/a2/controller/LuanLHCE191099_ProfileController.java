@@ -1,7 +1,7 @@
 package fu.edu.sba301.a2.controller;
 
 import fu.edu.sba301.a2.dto.LuanLHCE191099_AccountResponse;
-import fu.edu.sba301.a2.dto.LuanLHCE191099_ProfileInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_ProfileRequest;
 import fu.edu.sba301.a2.security.LuanLHCE191099_UserPrincipal;
 import fu.edu.sba301.a2.service.LuanLHCE191099_AccountService;
 import jakarta.validation.Valid;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 // Staff self-service profile endpoints. The authenticated principal always selects the target account.
-// There is no account ID supplied by the browser, and LuanLHCE191099_ProfileInput exposes no role field.
+// There is no account ID supplied by the browser, and LuanLHCE191099_ProfileRequest exposes no role field.
 @RestController
 @RequestMapping("/api/profile")
 @PreAuthorize("hasRole('STAFF')")
@@ -37,7 +37,7 @@ public class LuanLHCE191099_ProfileController {
     @PutMapping
     public LuanLHCE191099_AccountResponse update(
         @AuthenticationPrincipal LuanLHCE191099_UserPrincipal user,
-        @Valid @RequestBody LuanLHCE191099_ProfileInput input
+        @Valid @RequestBody LuanLHCE191099_ProfileRequest input
     ) {
         return accountService.updateProfile(user.id(), input);
     }

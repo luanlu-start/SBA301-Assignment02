@@ -74,11 +74,11 @@ Create và Edit dùng popup; Delete có xác nhận. Account đã tạo News kh�
 
 Admin không tự động có quyền Staff: hiện controller dùng `hasRole('ADMIN')` và `hasRole('STAFF')` riêng. Hai role đều đọc được tin công khai. Nếu sau này muốn một thao tác cho cả hai thì biểu thức tương ứng là `hasAnyRole('ADMIN', 'STAFF')`, nhưng đó là thay đổi quyền so với code hiện tại.
 
-| Vị trí                                        | Ví dụ role                 | Vì sao khác nhau                                |
-| --------------------------------------------- | -------------------------- | ----------------------------------------------- |
-| SystemAccount và AccountInput/AccountResponse | 1 = Admin, 2 = Staff       | Giá trị số dùng trong dữ liệu quản lý account   |
-| UserPrincipal trong session và React context  | ADMIN hoặc STAFF           | Tên quyền dùng để chọn menu và kiểm tra hasRole |
-| Spring Security authorities                   | ROLE_ADMIN hoặc ROLE_STAFF | saveAuthentication thêm tiền tố ROLE_           |
+| Vị trí                                          | Ví dụ role                 | Vì sao khác nhau                                |
+| ----------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| SystemAccount và AccountRequest/AccountResponse | 1 = Admin, 2 = Staff       | Giá trị số dùng trong dữ liệu quản lý account   |
+| UserPrincipal trong session và React context    | ADMIN hoặc STAFF           | Tên quyền dùng để chọn menu và kiểm tra hasRole |
+| Spring Security authorities                     | ROLE_ADMIN hoặc ROLE_STAFF | saveAuthentication thêm tiền tố ROLE_           |
 
 <a id="folders"></a>
 
@@ -270,11 +270,11 @@ NewsArticle dùng `@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)` 
 
 ## 6. DTO: dữ liệu nhận/trả của API và Java record
 
-Mở [LuanLHCE191099_AccountInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountInput.java#L1).
+Mở [LuanLHCE191099_AccountRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountRequest.java#L1).
 
 ```java
 /** Request used by Admin to create or update an account. */
-public record LuanLHCE191099_AccountInput(
+public record LuanLHCE191099_AccountRequest(
     @NotBlank @Size(max = 100) String name,
     @NotBlank @Email @Size(max = 150) String email,
     @Size(max = 100) String password,
@@ -289,27 +289,29 @@ Mở [LuanLHCE191099_AccountResponse.java](backend/src/main/java/fu/edu/sba301/a
 public record LuanLHCE191099_AccountResponse(Long id, String name, String email, Integer role) {}
 ```
 
-AccountInput là hợp đồng JSON cho Create/Update. AccountResponse là hợp đồng JSON trả về. Hai kiểu tách biệt giúp password có thể được nhận khi tạo tài khoản nhưng không xuất trong danh sách hoặc chi tiết tài khoản.
+Project đặt tên DTO theo cặp Request/Response: Request nhận dữ liệu từ frontend, Response trả dữ liệu về frontend. Mỗi DTO nằm trong một file riêng dưới package dto.
+
+AccountRequest là hợp đồng JSON cho Create/Update. AccountResponse là hợp đồng JSON trả về. Hai kiểu tách biệt giúp password có thể được nhận khi tạo tài khoản nhưng không xuất trong danh sách hoặc chi tiết tài khoản.
 
 Với record, `input.email()` và `input.name()` là accessor. Nó không dùng `getEmail()` như entity. Các thành phần record không có setter; tham chiếu thành phần không gán lại sau khởi tạo. Điều này không tự biến mọi List nằm bên trong thành danh sách bất biến.
 
 | DTO / mở file                                                                                          | Chiều        | Trường dữ liệu                                                                                                                                     | Mục đích                                          |
 | ------------------------------------------------------------------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| [AccountInput](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountInput.java#L1)         | Request      | name, email, password, role                                                                                                                        | Admin tạo/sửa account                             |
+| [AccountRequest](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountRequest.java#L1)     | Request      | name, email, password, role                                                                                                                        | Admin tạo/sửa account                             |
 | [AccountResponse](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountResponse.java#L1)   | Response     | id, name, email, role                                                                                                                              | Thông tin account an toàn                         |
 | [AuthResponse](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AuthResponse.java#L1)         | Response     | user                                                                                                                                               | Kết quả login chỉ có user                         |
-| [CategoryInput](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_CategoryInput.java#L1)       | Request      | name, description, parentId, status                                                                                                                | Tạo/sửa Category                                  |
+| [CategoryRequest](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_CategoryRequest.java#L1)   | Request      | name, description, parentId, status                                                                                                                | Tạo/sửa Category                                  |
 | [CategoryResponse](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_CategoryResponse.java#L1) | Response     | id, name, description, parentId, parentName, status                                                                                                | Category và thông tin parent dạng phẳng           |
-| [LoginInput](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_LoginInput.java#L1)             | Request      | email, password                                                                                                                                    | Email/password đăng nhập                          |
-| [NewsInput](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_NewsInput.java#L1)               | Request      | title, headline, content, source, categoryId, status, tags                                                                                         | Nội dung News và tags; không có tác giả tùy chọn  |
+| [LoginRequest](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_LoginRequest.java#L1)         | Request      | email, password                                                                                                                                    | Email/password đăng nhập                          |
+| [NewsRequest](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_NewsRequest.java#L1)           | Request      | title, headline, content, source, categoryId, status, tags                                                                                         | Nội dung News và tags; không có tác giả tùy chọn  |
 | [NewsResponse](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_NewsResponse.java#L1)         | Response     | id, title, headline, content, source, categoryId, categoryName, status, createdById, createdByName, updatedByName, createdDate, modifiedDate, tags | News có tên Category/tác giả, thời gian và tags   |
-| [ProfileInput](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_ProfileInput.java#L1)         | Request      | name, email, password                                                                                                                              | Tên/email/password của chính Staff; không có role |
-| [TagInput](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_TagInput.java#L1)                 | Request con  | name, note                                                                                                                                         | Một tag trong NewsInput                           |
+| [ProfileRequest](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_ProfileRequest.java#L1)     | Request      | name, email, password                                                                                                                              | Tên/email/password của chính Staff; không có role |
+| [TagRequest](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_TagRequest.java#L1)             | Request con  | name, note                                                                                                                                         | Một tag trong NewsRequest                         |
 | [TagResponse](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_TagResponse.java#L1)           | Response con | id, name, note                                                                                                                                     | Tag có ID đã lưu                                  |
 
-`@NotBlank` chặn null/rỗng/toàn khoảng trắng; `@NotNull` chỉ yêu cầu có giá trị; `@Email` kiểm tra định dạng; `@Size` giới hạn độ dài; `@Min/@Max` giới hạn số; `@Positive` yêu cầu số dương khi có giá trị. `@Valid` trong controller kích hoạt kiểm tra DTO. `List<@Valid TagInput>` còn kiểm tra từng Tag bên trong NewsInput.
+`@NotBlank` chặn null/rỗng/toàn khoảng trắng; `@NotNull` chỉ yêu cầu có giá trị; `@Email` kiểm tra định dạng; `@Size` giới hạn độ dài; `@Min/@Max` giới hạn số; `@Positive` yêu cầu số dương khi có giá trị. `@Valid` trong controller kích hoạt kiểm tra DTO. `List<@Valid TagRequest>` còn kiểm tra từng Tag bên trong NewsRequest.
 
-Không phải mọi nghiệp vụ đều diễn đạt bằng annotation: email trùng, password khi tạo, Category đang dùng và Admin cuối cùng được kiểm tra trong service. Cấu hình Jackson từ chối trường không có trong DTO; gửi thêm role vào ProfileInput sẽ nhận lỗi 400.
+Không phải mọi nghiệp vụ đều diễn đạt bằng annotation: email trùng, password khi tạo, Category đang dùng và Admin cuối cùng được kiểm tra trong service. Cấu hình Jackson từ chối trường không có trong DTO; gửi thêm role vào ProfileRequest sẽ nhận lỗi 400.
 
 <a id="backend-start"></a>
 
@@ -485,7 +487,7 @@ Mở [LuanLHCE191099_AuthController.java](backend/src/main/java/fu/edu/sba301/a2
 
 ```java
 public LuanLHCE191099_AuthResponse login(
-    @Valid @RequestBody LuanLHCE191099_LoginInput input,
+    @Valid @RequestBody LuanLHCE191099_LoginRequest input,
     HttpServletRequest request,
     HttpServletResponse response
 ) {
@@ -504,8 +506,8 @@ public LuanLHCE191099_AuthResponse login(
 | Thành phần                                     | Ý nghĩa                                                              |
 | ---------------------------------------------- | -------------------------------------------------------------------- |
 | @PostMapping("/login") trên class có /api/auth | Nhận POST /api/auth/login                                            |
-| @RequestBody LoginInput input                  | Jackson đọc JSON email/password thành record                         |
-| @Valid                                         | Chạy các constraint trên LoginInput trước logic trong method         |
+| @RequestBody LoginRequest input                | Jackson đọc JSON email/password thành record                         |
+| @Valid                                         | Chạy các constraint trên LoginRequest trước logic trong method       |
 | HttpServletRequest / HttpServletResponse       | Spring cấp request/response hiện tại để làm việc với phiên và cookie |
 | authService.authenticate(input)                | Kiểm tra account/password, trả danh tính an toàn                     |
 | request.getSession(true)                       | Lấy session hiện tại hoặc tạo session nếu chưa có                    |
@@ -517,7 +519,7 @@ public LuanLHCE191099_AuthResponse login(
 Mở [LuanLHCE191099_AuthService.java](backend/src/main/java/fu/edu/sba301/a2/service/LuanLHCE191099_AuthService.java#L28), tìm `public LuanLHCE191099_UserPrincipal authenticate(`.
 
 ```java
-public LuanLHCE191099_UserPrincipal authenticate(LuanLHCE191099_LoginInput input) {
+public LuanLHCE191099_UserPrincipal authenticate(LuanLHCE191099_LoginRequest input) {
     LuanLHCE191099_Account account = accountRepository
         .findByEmailIgnoreCase(input.email().trim())
         .orElseThrow(() ->
@@ -941,7 +943,7 @@ JSON minh họa trên là body POST /api/accounts. Controller @Valid kiểm tra 
 Mở [LuanLHCE191099_AccountService.java](backend/src/main/java/fu/edu/sba301/a2/service/LuanLHCE191099_AccountService.java#L75), tìm `public LuanLHCE191099_AccountResponse createAccount(`.
 
 ```java
-public LuanLHCE191099_AccountResponse createAccount(LuanLHCE191099_AccountInput input) {
+public LuanLHCE191099_AccountResponse createAccount(LuanLHCE191099_AccountRequest input) {
     LuanLHCE191099_Account account = new LuanLHCE191099_Account();
     applyInput(account, input);
 
@@ -958,7 +960,7 @@ Method được @Transactional. Commit được thực hiện khi lời gọi tr
 Mở [LuanLHCE191099_AccountService.java](backend/src/main/java/fu/edu/sba301/a2/service/LuanLHCE191099_AccountService.java#L144), tìm `private void applyInput(`.
 
 ```java
-private void applyInput(LuanLHCE191099_Account account, LuanLHCE191099_AccountInput input) {
+private void applyInput(LuanLHCE191099_Account account, LuanLHCE191099_AccountRequest input) {
     String email = input.email().trim().toLowerCase(Locale.ROOT);
     Optional<LuanLHCE191099_Account> existingAccount = accountRepository.findByEmailIgnoreCase(
         email
@@ -1126,12 +1128,15 @@ CategoryManagement dùng CrudPage với endpoint=/categories. Nó gọi thêm us
 
 Có hai nguồn đọc cùng resource nhưng hai nhiệm vụ: danh sách trong CrudPage thay đổi theo Search; danh sách phía page cung cấp toàn bộ lựa chọn Category cha. onChanged={categories.reload} cập nhật lựa chọn sau khi thêm/sửa/xóa thành công.
 
-CategoryController cũng tách GET collection theo q: getAllCategories khi rỗng, searchCategories khi có từ khóa. Search chỉ so tên Category. Create/Update dùng CategoryInput; response có parentId và parentName để bảng không cần tự gọi thêm API tìm tên cha.
+CategoryController cũng tách GET collection theo q: getAllCategories khi rỗng, searchCategories khi có từ khóa. Search chỉ so tên Category. Create/Update dùng CategoryRequest; response có parentId và parentName để bảng không cần tự gọi thêm API tìm tên cha.
 
 Mở [LuanLHCE191099_CategoryService.java](backend/src/main/java/fu/edu/sba301/a2/service/LuanLHCE191099_CategoryService.java#L90), tìm `private void applyInput(`.
 
 ```java
-private void applyInput(LuanLHCE191099_Category category, LuanLHCE191099_CategoryInput input) {
+private void applyInput(
+    LuanLHCE191099_Category category,
+    LuanLHCE191099_CategoryRequest input
+) {
     LuanLHCE191099_Category parent = null;
     if (input.parentId() != null) {
         parent = findCategoryOrThrow(input.parentId());
@@ -1242,7 +1247,7 @@ function prepareRequest(values) {
 | line.indexOf('\|')         | Tìm dấu ngăn cách đầu tiên; -1 nghĩa là không có note         |
 | slice(0, separator)        | Lấy phần name ở bên trái dấu ngăn cách                        |
 | slice(separator + 1)       | Lấy phần note ở bên phải, giữ các dấu \| sau đó trong note    |
-| tags.push({ name, note })  | Tạo một object TagInput cho dòng đó                           |
+| tags.push({ name, note })  | Tạo một object TagRequest cho dòng đó                         |
 | return { ...values, tags } | Giữ các field khác và thay tags dạng text bằng tags dạng mảng |
 
 ```json
@@ -1266,7 +1271,7 @@ Mở [LuanLHCE191099_NewsService.java](backend/src/main/java/fu/edu/sba301/a2/se
 
 ```java
 public LuanLHCE191099_NewsResponse createNews(
-    LuanLHCE191099_NewsInput input,
+    LuanLHCE191099_NewsRequest input,
     Long currentUserId
 ) {
     LuanLHCE191099_NewsArticle article = new LuanLHCE191099_NewsArticle();
@@ -1282,7 +1287,7 @@ Tạo entity mới, tìm account của người gọi và gán createdBy; lấy 
 Mở [LuanLHCE191099_NewsService.java](backend/src/main/java/fu/edu/sba301/a2/service/LuanLHCE191099_NewsService.java#L130), tìm `private void applyInput(`.
 
 ```java
-private void applyInput(LuanLHCE191099_NewsArticle article, LuanLHCE191099_NewsInput input) {
+private void applyInput(LuanLHCE191099_NewsArticle article, LuanLHCE191099_NewsRequest input) {
     LuanLHCE191099_Category category = categoryRepository
         .findById(input.categoryId())
         .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Category not found."));
@@ -1296,7 +1301,7 @@ private void applyInput(LuanLHCE191099_NewsArticle article, LuanLHCE191099_NewsI
 
     // The article owns these tags: removed tags are deleted and new ones cascade on save.
     article.getTags().clear();
-    for (LuanLHCE191099_TagInput tagInput : input.tags()) {
+    for (LuanLHCE191099_TagRequest tagInput : input.tags()) {
         LuanLHCE191099_Tag tag = new LuanLHCE191099_Tag();
         tag.setName(tagInput.name().trim());
         tag.setNote(tagInput.note());
@@ -1305,9 +1310,9 @@ private void applyInput(LuanLHCE191099_NewsArticle article, LuanLHCE191099_NewsI
 }
 ```
 
-CategoryId phải tồn tại; nếu không thì 404. Nội dung/tên được trim theo code; các giới hạn bắt buộc/độ dài/giá trị status được kiểm tra bằng NewsInput trước đó.
+CategoryId phải tồn tại; nếu không thì 404. Nội dung/tên được trim theo code; các giới hạn bắt buộc/độ dài/giá trị status được kiểm tra bằng NewsRequest trước đó.
 
-Với tags, service clear collection cũ rồi tạo Tag mới cho từng TagInput. CascadeType.ALL persist các tag mới; orphanRemoval xử lý tag bị bỏ. Vì cách cập nhật hiện thay tag objects, ID tag có thể thay đổi sau Edit dù tên tag giữ nguyên. Không được dùng ID Tag cũ làm ID News.
+Với tags, service clear collection cũ rồi tạo Tag mới cho từng TagRequest. CascadeType.ALL persist các tag mới; orphanRemoval xử lý tag bị bỏ. Vì cách cập nhật hiện thay tag objects, ID tag có thể thay đổi sau Edit dù tên tag giữ nguyên. Không được dùng ID Tag cũ làm ID News.
 
 Khi mở Edit, mapRecordToForm làm chiều ngược: từng TagResponse được ghép thành một dòng name hoặc name | note, các dòng join bằng \n rồi đưa vào textarea. Đây chỉ là định dạng form, chưa ghi dữ liệu xuống SQL Server.
 
@@ -1316,7 +1321,7 @@ Mở [LuanLHCE191099_NewsService.java](backend/src/main/java/fu/edu/sba301/a2/se
 ```java
 public LuanLHCE191099_NewsResponse updateNews(
     Long newsId,
-    LuanLHCE191099_NewsInput input,
+    LuanLHCE191099_NewsRequest input,
     Long currentUserId
 ) {
     LuanLHCE191099_NewsArticle article = findNewsOrThrow(newsId);
@@ -1474,12 +1479,12 @@ Mở [LuanLHCE191099_AccountService.java](backend/src/main/java/fu/edu/sba301/a2
 ```java
 public LuanLHCE191099_AccountResponse updateProfile(
     Long currentUserId,
-    LuanLHCE191099_ProfileInput input
+    LuanLHCE191099_ProfileRequest input
 ) {
     LuanLHCE191099_Account account = findAccountOrThrow(currentUserId);
 
     // The existing account supplies the role, so a profile edit cannot grant Admin access.
-    LuanLHCE191099_AccountInput accountInput = new LuanLHCE191099_AccountInput(
+    LuanLHCE191099_AccountRequest accountInput = new LuanLHCE191099_AccountRequest(
         input.name(),
         input.email(),
         input.password(),
@@ -1492,9 +1497,9 @@ public LuanLHCE191099_AccountResponse updateProfile(
 }
 ```
 
-Service đọc account theo currentUserId. Nó tạo AccountInput nội bộ từ các trường ProfileInput và role đang có trong entity. Role này không lấy từ client. Sau đó dùng chung applyInput để kiểm tra email/password rồi saveAndFlush.
+Service đọc account theo currentUserId. Nó tạo AccountRequest nội bộ từ các trường ProfileRequest và role đang có trong entity. Role này không lấy từ client. Sau đó dùng chung applyInput để kiểm tra email/password rồi saveAndFlush.
 
-ProfileInput không khai báo role. Với fail-on-unknown-properties=true, gửi thêm role=1 vào body sẽ trả 400. Khi password để rỗng, hasNewPassword=false và hash cũ được giữ lại.
+ProfileRequest không khai báo role. Với fail-on-unknown-properties=true, gửi thêm role=1 vào body sẽ trả 400. Khi password để rỗng, hasNewPassword=false và hash cũ được giữ lại.
 
 GET /auth/me gọi AuthService.getCurrentUser rồi saveAuthentication lại, nên user được cập nhật trong cả response và session. Quyền của phiên được nạp ở login hoặc refresh /me; không có cơ chế truy vấn lại account cho mọi request như một custom filter.
 
@@ -1723,7 +1728,7 @@ Một số khoảng cách Bootstrap đang dùng: mb-3/gap-3 là 1rem, py-4 là 1
 | GET /api/profile            | Staff                   | ProfileController.get -&gt; getAccountById(user.id())                 | Account hiện tại                   |
 | PUT /api/profile            | Staff                   | ProfileController.update -&gt; updateProfile                          | Hồ sơ đã sửa, role được giữ        |
 
-Tất cả POST/PUT/DELETE qua browser đều được api.js bổ sung giá trị CSRF trước khi gửi. JSON payload phải theo đúng Input DTO. Response có thể không phải JSON object: list là JSON array, còn 204 không có body.
+Tất cả POST/PUT/DELETE qua browser đều được api.js bổ sung giá trị CSRF trước khi gửi. JSON payload phải theo đúng Request DTO. Response có thể không phải JSON object: list là JSON array, còn 204 không có body.
 
 Ví dụ ba URL dễ nhầm: `/news` là route React cho khách đọc tin; `/manage/news` là route React quản lý tin của Staff; `/api/news` là resource backend cần Staff. Vite chỉ proxy prefix `/api`, không proxy các route UI.
 
@@ -1809,16 +1814,16 @@ Mở database/LuanLHCE191099_verification.sql để SELECT Account (không passw
 | [LuanLHCE191099_NewsController.java](backend/src/main/java/fu/edu/sba301/a2/controller/LuanLHCE191099_NewsController.java#L1)          | controller | HTTP CRUD/Search News và history; actor từ principal.                                 |
 | [LuanLHCE191099_ProfileController.java](backend/src/main/java/fu/edu/sba301/a2/controller/LuanLHCE191099_ProfileController.java#L1)    | controller | Đọc/sửa account của chính Staff.                                                      |
 | [LuanLHCE191099_PublicController.java](backend/src/main/java/fu/edu/sba301/a2/controller/LuanLHCE191099_PublicController.java#L1)      | controller | GET danh sách/chi tiết tin Active cho khách.                                          |
-| [LuanLHCE191099_AccountInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountInput.java#L1)                     | dto        | DTO riêng cho AccountInput; xem bảng DTO ở phần 6.                                    |
+| [LuanLHCE191099_AccountRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountRequest.java#L1)                 | dto        | DTO riêng cho AccountRequest; xem bảng DTO ở phần 6.                                  |
 | [LuanLHCE191099_AccountResponse.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AccountResponse.java#L1)               | dto        | DTO riêng cho AccountResponse; xem bảng DTO ở phần 6.                                 |
 | [LuanLHCE191099_AuthResponse.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_AuthResponse.java#L1)                     | dto        | DTO riêng cho AuthResponse; xem bảng DTO ở phần 6.                                    |
-| [LuanLHCE191099_CategoryInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_CategoryInput.java#L1)                   | dto        | DTO riêng cho CategoryInput; xem bảng DTO ở phần 6.                                   |
+| [LuanLHCE191099_CategoryRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_CategoryRequest.java#L1)               | dto        | DTO riêng cho CategoryRequest; xem bảng DTO ở phần 6.                                 |
 | [LuanLHCE191099_CategoryResponse.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_CategoryResponse.java#L1)             | dto        | DTO riêng cho CategoryResponse; xem bảng DTO ở phần 6.                                |
-| [LuanLHCE191099_LoginInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_LoginInput.java#L1)                         | dto        | DTO riêng cho LoginInput; xem bảng DTO ở phần 6.                                      |
-| [LuanLHCE191099_NewsInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_NewsInput.java#L1)                           | dto        | DTO riêng cho NewsInput; xem bảng DTO ở phần 6.                                       |
+| [LuanLHCE191099_LoginRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_LoginRequest.java#L1)                     | dto        | DTO riêng cho LoginRequest; xem bảng DTO ở phần 6.                                    |
+| [LuanLHCE191099_NewsRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_NewsRequest.java#L1)                       | dto        | DTO riêng cho NewsRequest; xem bảng DTO ở phần 6.                                     |
 | [LuanLHCE191099_NewsResponse.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_NewsResponse.java#L1)                     | dto        | DTO riêng cho NewsResponse; xem bảng DTO ở phần 6.                                    |
-| [LuanLHCE191099_ProfileInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_ProfileInput.java#L1)                     | dto        | DTO riêng cho ProfileInput; xem bảng DTO ở phần 6.                                    |
-| [LuanLHCE191099_TagInput.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_TagInput.java#L1)                             | dto        | DTO riêng cho TagInput; xem bảng DTO ở phần 6.                                        |
+| [LuanLHCE191099_ProfileRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_ProfileRequest.java#L1)                 | dto        | DTO riêng cho ProfileRequest; xem bảng DTO ở phần 6.                                  |
+| [LuanLHCE191099_TagRequest.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_TagRequest.java#L1)                         | dto        | DTO riêng cho TagRequest; xem bảng DTO ở phần 6.                                      |
 | [LuanLHCE191099_TagResponse.java](backend/src/main/java/fu/edu/sba301/a2/dto/LuanLHCE191099_TagResponse.java#L1)                       | dto        | DTO riêng cho TagResponse; xem bảng DTO ở phần 6.                                     |
 | [LuanLHCE191099_Account.java](backend/src/main/java/fu/edu/sba301/a2/entity/LuanLHCE191099_Account.java#L1)                            | entity     | Entity SystemAccount với Lombok, UNIQUE email và password hash.                       |
 | [LuanLHCE191099_Category.java](backend/src/main/java/fu/edu/sba301/a2/entity/LuanLHCE191099_Category.java#L1)                          | entity     | Entity Category có self-reference parent.                                             |

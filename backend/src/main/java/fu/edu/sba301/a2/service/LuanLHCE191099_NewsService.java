@@ -1,8 +1,8 @@
 package fu.edu.sba301.a2.service;
 
-import fu.edu.sba301.a2.dto.LuanLHCE191099_NewsInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_NewsRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_NewsResponse;
-import fu.edu.sba301.a2.dto.LuanLHCE191099_TagInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_TagRequest;
 import fu.edu.sba301.a2.dto.LuanLHCE191099_TagResponse;
 import fu.edu.sba301.a2.entity.LuanLHCE191099_Account;
 import fu.edu.sba301.a2.entity.LuanLHCE191099_Category;
@@ -97,7 +97,7 @@ public class LuanLHCE191099_NewsService {
 
     @Transactional
     public LuanLHCE191099_NewsResponse createNews(
-        LuanLHCE191099_NewsInput input,
+        LuanLHCE191099_NewsRequest input,
         Long currentUserId
     ) {
         LuanLHCE191099_NewsArticle article = new LuanLHCE191099_NewsArticle();
@@ -110,7 +110,7 @@ public class LuanLHCE191099_NewsService {
     @Transactional
     public LuanLHCE191099_NewsResponse updateNews(
         Long newsId,
-        LuanLHCE191099_NewsInput input,
+        LuanLHCE191099_NewsRequest input,
         Long currentUserId
     ) {
         LuanLHCE191099_NewsArticle article = findNewsOrThrow(newsId);
@@ -127,7 +127,7 @@ public class LuanLHCE191099_NewsService {
         newsRepository.flush();
     }
 
-    private void applyInput(LuanLHCE191099_NewsArticle article, LuanLHCE191099_NewsInput input) {
+    private void applyInput(LuanLHCE191099_NewsArticle article, LuanLHCE191099_NewsRequest input) {
         LuanLHCE191099_Category category = categoryRepository
             .findById(input.categoryId())
             .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Category not found."));
@@ -141,7 +141,7 @@ public class LuanLHCE191099_NewsService {
 
         // The article owns these tags: removed tags are deleted and new ones cascade on save.
         article.getTags().clear();
-        for (LuanLHCE191099_TagInput tagInput : input.tags()) {
+        for (LuanLHCE191099_TagRequest tagInput : input.tags()) {
             LuanLHCE191099_Tag tag = new LuanLHCE191099_Tag();
             tag.setName(tagInput.name().trim());
             tag.setNote(tagInput.note());

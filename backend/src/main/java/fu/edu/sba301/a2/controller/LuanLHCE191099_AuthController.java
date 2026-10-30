@@ -1,7 +1,7 @@
 package fu.edu.sba301.a2.controller;
 
 import fu.edu.sba301.a2.dto.LuanLHCE191099_AuthResponse;
-import fu.edu.sba301.a2.dto.LuanLHCE191099_LoginInput;
+import fu.edu.sba301.a2.dto.LuanLHCE191099_LoginRequest;
 import fu.edu.sba301.a2.security.LuanLHCE191099_UserPrincipal;
 import fu.edu.sba301.a2.service.LuanLHCE191099_AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,7 +48,7 @@ public class LuanLHCE191099_AuthController {
 
     @PostMapping("/login")
     public LuanLHCE191099_AuthResponse login(
-        @Valid @RequestBody LuanLHCE191099_LoginInput input,
+        @Valid @RequestBody LuanLHCE191099_LoginRequest input,
         HttpServletRequest request,
         HttpServletResponse response
     ) {
