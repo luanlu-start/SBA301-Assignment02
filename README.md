@@ -2,18 +2,18 @@
 
 SBA301 Assignment 02. Sinh viên: LuanLH - CE191099. Lớp: SE1910.
 
-Spring Boot 3.5 / Java 21 / Spring Data JPA / SQL Server; React / Vite / React-Bootstrap / Axios.
+Spring Boot 3.5 / Java 21 / Spring Data JPA / SQL Server; React / Vite / React-Bootstrap / Axios. Đăng nhập bằng email/password và session lưu tại backend.
 
 ## Chạy trên máy hiện tại
 
-Database và file `backend/application-local.properties` đã được cấu hình riêng tại máy làm bài. File này chứa thông tin kết nối local và không đưa lên Git hoặc ZIP.
+1. Mở `backend/pom.xml` bằng IntelliJ, chọn JDK 21 rồi Reload Maven để nạp dependency và annotation processor của Lombok.
+2. Dừng backend cũ và chạy lại class `LuanLHCE191099_Application`. Backend dùng cổng **8082**.
+3. Trong `frontend`, chạy `npm ci` khi chưa có node_modules rồi `npm run dev`.
+4. Mở **http://127.0.0.1:5175** để đến Login hoặc màn quản lý theo phiên hiện tại. Bảng tin công khai ở **http://127.0.0.1:5175/news**. Frontend chuyển request `/api` đến backend qua Vite proxy.
 
-1. Mở `backend/pom.xml` bằng IntelliJ, chọn JDK 21 và Reload Maven.
-2. Chạy class `LuanLHCE191099_Application`. Backend dùng port **8082**.
-3. Mở terminal thứ hai trong `frontend`, chạy `npm ci` khi chưa có node_modules rồi `npm run dev`.
-4. Mở **http://127.0.0.1:5175**. Frontend proxy `/api` về backend.
+File `backend/application-local.properties` trên máy làm bài đã có kết nối database riêng, được bỏ qua bởi Git. Không cần cấu hình khóa ký để chạy ứng dụng.
 
-Hoặc chạy hai terminal từ thư mục gốc project:
+Hoặc mở hai terminal tại thư mục gốc project:
 
 ```powershell
 .\LuanLHCE191099_run-backend.ps1
@@ -23,70 +23,70 @@ Hoặc chạy hai terminal từ thư mục gốc project:
 .\LuanLHCE191099_run-frontend.ps1
 ```
 
-Nếu đã có server đang chạy trên cổng trên thì dùng server đó hoặc dừng đúng process của project trước khi mở bản thứ hai.
-
 ## Tài khoản mẫu
 
-| Role | Email | Password |
-|---|---|---|
+| Role  | Email                | Password    |
+| ----- | -------------------- | ----------- |
 | Admin | `admin@funews.local` | `Admin@123` |
 | Staff | `staff@funews.local` | `Staff@123` |
 
-Đây là tài khoản thực hành. Dữ liệu mẫu chỉ được thêm khi chưa có dữ liệu khởi tạo; không ghi đè tài khoản đã sửa.
+Dữ liệu mẫu chỉ được thêm khi bảng tài khoản trống; không ghi đè tài khoản đã sửa. Khách có thể đọc tin Active mà không đăng nhập.
 
 ## Khi clone sang máy khác
 
-1. Cài JDK 21, Node tương thích Vite 8 (Node 22.12+ hoặc Node 24) và SQL Server.
-2. Dùng kết nối **Microsoft SQL Server**, chạy `database/LuanLHCE191099_create-database.sql` để tạo database **A2LuanLH_SE1910**. Spring Data JPA/Hibernate tạo các bảng khi backend khởi động.
-3. Copy `backend/application-local.properties.example` thành `backend/application-local.properties`. Điền username/password SQL Server và một JWT secret ngẫu nhiên ít nhất 32 ký tự. Không cần đặt biến môi trường.
-4. Có thể tạo JWT secret bằng `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` rồi dán kết quả vào file local.
-5. Trong `backend`, chạy `.\mvnw.cmd spring-boot:run`. Trong `frontend`, chạy `npm ci` và `npm run dev`.
+1. Cài JDK 21, Node 22.12+ hoặc Node 24 và SQL Server.
+2. Kết nối bằng driver **Microsoft SQL Server**, chạy `database/LuanLHCE191099_create-database.sql` để tạo database **A2LuanLH_SE1910**. Hibernate tạo/cập nhật các bảng khi khởi động.
+3. Copy `backend/application-local.properties.example` thành `backend/application-local.properties`, điền tài khoản và mật khẩu SQL Server.
+4. Trong `backend`, chạy `.\mvnw.cmd spring-boot:run`. Trong `frontend`, chạy `npm ci` rồi `npm run dev`.
+
+## Đăng nhập bằng session
+
+1. React gửi email/password đến `POST /api/auth/login`.
+2. AuthService tìm account trong database và kiểm tra BCrypt password.
+3. AuthController lưu người đăng nhập và quyền vào `HttpSession` thông qua Spring Security.
+4. Backend đặt cookie HttpOnly tên `A2SESSION`. Trình duyệt tự lưu và gửi cookie cho các request tiếp theo.
+5. F5 gọi `GET /api/auth/me` để phục hồi thông tin người dùng từ phiên.
+6. Sign out gọi `POST /api/auth/logout`; Spring xóa phiên ở server và cookie ở trình duyệt.
+
+Phiên hết hạn sau 30 phút không hoạt động. Frontend giữ user trong React state, không lưu thông tin đăng nhập bằng localStorage/sessionStorage. Quyền trong session được cập nhật khi đăng nhập hoặc gọi `/auth/me`.
+
+Vì dùng cookie, Spring bật bảo vệ CSRF cho request ghi dữ liệu. Axios tự gọi `GET /api/auth/csrf` trước POST/PUT/DELETE và gửi giá trị nhận được qua header `X-CSRF-TOKEN`. Giá trị này kiểm tra request ghi; danh tính đăng nhập vẫn nằm trong session ở backend.
 
 ## Chức năng
 
-- Khách xem danh sách và nội dung tin Active mà không cần đăng nhập.
-- Admin: CRUD/Search tài khoản. Không xóa tài khoản đã tạo tin; bảo vệ tài khoản Admin cuối cùng và không tự xóa phiên đang dùng.
-- Staff: CRUD/Search Category, có Category cha/con; chặn xóa Category đang được News sử dụng.
-- Staff: CRUD/Search News cùng tags, chỉnh sửa hồ sơ cá nhân và xem lịch sử tin mình tạo.
-- Thêm/sửa bằng popup. Xóa luôn qua hộp xác nhận.
-- Role Admin = 1, Staff = 2. News/Category: Active = 1, Inactive = 0.
-- Các bảng theo sơ đồ: SystemAccount, Category, NewsArticle, Tag, NewsTag. Tag thuộc tối đa một NewsArticle qua ràng buộc unique TagID trong NewsTag.
+- Khách: xem và tìm tin Active, mở nội dung bài viết.
+- Admin: CRUD/Search Account; chặn xóa tài khoản đã tạo tin, tự xóa tài khoản hiện tại và xóa/hạ quyền Admin cuối cùng.
+- Staff: CRUD/Search Category; chọn Category cha, chặn chu trình cha/con và xóa Category đang dùng.
+- Staff: CRUD/Search News cùng tags; sửa hồ sơ cá nhân và xem tin do chính mình tạo.
+- Create/Edit dùng popup; Delete luôn có hộp xác nhận.
+- Role trong database: Admin = 1, Staff = 2. News/Category: Active = 1, Inactive = 0.
+- Bảng: SystemAccount, Category, NewsArticle, Tag, NewsTag. Mỗi Tag thuộc tối đa một NewsArticle.
 
-## Luồng và cấu trúc
+## Cách đọc source
 
-```text
-frontend/src/     React page -> Axios -> REST request
-backend/.../controller/  HTTP input, validation, quyền truy cập
-backend/.../service/     nghiệp vụ và transaction
-backend/.../repository/  Spring Data JPA -> SQL Server
-backend/.../entity/      mapping bảng và quan hệ
-backend/.../security/    ký/đọc JWT và nạp người dùng hiện tại
-```
+Đọc [hướng dẫn chi tiết toàn bộ Assignment 02](HUONG_DAN_ASSIGNMENT02_CHI_TIET.md): đối chiếu A1 → A2, cấu trúc thư mục, đăng nhập/session, từng luồng CRUD, code quan trọng và cách tự kiểm tra. [Bản đọc nhanh theo luồng](docs/HUONG_DAN_THEO_LUONG.md) giúp tra cứu khi chạy bài.
 
-File source Java, JSX, JS, CSS dùng tiền tố `LuanLHCE191099_`. Các file cấu hình như package.json, pom.xml, application.properties và index.html giữ tên chuẩn.
+Frontend chia thành `pages`, `components/Layout`, `components/Common`, `context`, `hooks` và `services`. Backend có ba tầng Controller -> Service -> Repository. Mỗi DTO có file riêng. Bốn entity dùng Lombok `@Getter`, `@Setter`, `@NoArgsConstructor` để sinh getter/setter và constructor rỗng. Entity ánh xạ bảng; SecurityConfig thiết lập session và phân quyền.
 
-Xem [hướng dẫn theo luồng và từng file](docs/HUONG_DAN_THEO_LUONG.md).
+File Java/JS/JSX/CSS dùng tiền tố `LuanLHCE191099_`; các file cấu hình giữ tên chuẩn. Comment trong source dùng tiếng Anh.
 
-## Kiểm tra
+## Format và kiểm tra
+
+Java dùng 4 dấu cách; JavaScript/JSX/CSS dùng 2 dấu cách, theo `.editorconfig` và `.prettierrc.json`.
 
 ```powershell
-# Trong backend
-.\mvnw.cmd verify
 # Trong frontend
+npm run format
+npm run format:check
 npm run build
 npm run lint
+
+# Trong backend
+.\mvnw.cmd clean test
 ```
 
-Test backend dùng H2 riêng, không sửa database SQL Server thực hành. Import `postman/LuanLHCE191099_Assignment02.postman_collection.json` vào Postman và Run collection theo thứ tự; collection tạo dữ liệu thử rồi xóa các bản ghi thử ở cuối. Base URL mặc định là `http://localhost:8082/api`.
+Test backend dùng H2 riêng. Bộ kiểm tra gồm CRUD/Search, phân quyền, validation, session sau login, đổi session ID, logout và bảo vệ CSRF.
 
-`database/LuanLHCE191099_verification.sql` chứa các SELECT để đối chiếu dữ liệu và quan hệ mà không hiển thị password. Ảnh giao diện ở `docs/screenshots/`.
+Import `postman/LuanLHCE191099_Assignment02.postman_collection.json` và Run theo thứ tự. Giữ cookie jar của Postman bật; collection tự lấy CSRF trước request ghi, tự giữ cookie đăng nhập và xóa các bản ghi thử ở cuối. Không cần nhập Authorization header.
 
-Kết quả kiểm tra ngày 29/10/2026: 8 test backend đạt; frontend build và lint đạt. Collection Postman chạy bằng Newman đạt 19 request / 22 assertions. Đã thử trên trình duyệt với SQL Server thật: đăng nhập theo role, CRUD/Search, popup, tags, lịch sử, profile, tin Inactive và chặn xóa Category đang dùng. Dữ liệu thử đã được dọn sau khi kiểm tra.
-
-## Một số hành vi cần biết
-
-- JWT lưu trong sessionStorage của tab, thời hạn mặc định 2 giờ. F5 gọi `/api/auth/me` để nạp lại phiên. Sign out xóa token ở client; token đã phát hành còn hiệu lực tới khi hết hạn.
-- Password tài khoản trong database được BCrypt hash và không xuất trong response DTO. Role được kiểm tra ở backend, không dựa vào menu hoặc dữ liệu role do client gửi.
-- Email trùng hoặc dữ liệu đang được tham chiếu trả 409; input sai trả 400; thiếu/không hợp lệ token trả 401; sai quyền trả 403; không tìm thấy trả 404.
-- Create/Update chỉ chấp nhận các trường trong request DTO; không nhận ID chủ sở hữu hoặc tổng tiền tùy ý từ frontend.
-- Bài 2 dùng JWT để giữ đăng nhập API. Admin quản lý Accounts; Staff quản lý Categories/News/Profile/History.
+`database/LuanLHCE191099_verification.sql` chứa SELECT đối chiếu dữ liệu/quan hệ. API trả 400 cho input sai, 401 khi chưa đăng nhập, 403 khi thiếu quyền/CSRF, 404 khi không tìm thấy và 409 khi xung đột dữ liệu. Response Account không chứa password/hash.

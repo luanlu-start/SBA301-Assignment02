@@ -1,99 +1,117 @@
 # Assignment 02 - Đọc theo luồng và từng file
 
-## 1. Mở app
+Đây là bản tra cứu nhanh. Mở [hướng dẫn chi tiết toàn bộ Assignment 02](../HUONG_DAN_ASSIGNMENT02_CHI_TIET.md) để đọc giải thích code, đối chiếu A1 → A2, danh sách file và các bước kiểm tra.
 
-1. Backend: `LuanLHCE191099_Application.java` gọi SpringApplication.run.
-2. Spring đọc application.properties và file local, mở DataSource, Hibernate tạo/cập nhật bảng trong database riêng.
-3. `config/LuanLHCE191099_SeedData.java` tạo dữ liệu mẫu nếu chưa có dữ liệu khởi tạo.
-4. Frontend: index.html nạp `src/LuanLHCE191099_main.jsx`, main render App.
-5. `src/LuanLHCE191099_App.jsx` ghép Router, AuthProvider và menu. Trang đầu hiển thị dữ liệu công khai.
-
-## 2. Đăng nhập
+## 1. Kiến trúc
 
 ```text
-LoginPage: Form.onSubmit
--> useAuth().login(email, password)
--> api.post('/auth/login')
--> AuthController
--> AuthService kiểm tra tài khoản/password
--> JwtService ký token
--> trả token + UserPrincipal không có password
--> AuthProvider lưu token vào sessionStorage và đổi state user
--> Router chuyển tới màn hình phù hợp role
+React page -> Axios -> Controller -> Service -> Repository -> SQL Server
+                     <- JSON DTO <- dữ liệu được kiểm tra và chuyển đổi
 ```
 
-File cần mở theo thứ tự:
+- Controller nhận HTTP request, kiểm tra DTO bằng `@Valid`, lấy người dùng bằng `@AuthenticationPrincipal` và gọi service.
+- Service xử lý nghiệp vụ, transaction và chuyển Entity thành Response DTO.
+- Repository đọc/ghi database qua Spring Data JPA.
+- Entity ánh xạ bảng và các quan hệ; DTO mô tả dữ liệu nhận/trả của API. Entity dùng Lombok `@Getter`, `@Setter`, `@NoArgsConstructor`: các phương thức `getName()`, `setName()` vẫn được tạo khi compile dù không viết tay trong file.
 
-| Bước | File source |
-|---|---|
-| Gõ và Submit | frontend/src/LuanLHCE191099_LoginPage.jsx |
-| Lưu phiên và cập nhật React | frontend/src/LuanLHCE191099_Auth.jsx |
-| Gửi request, gắn Authorization | frontend/src/LuanLHCE191099_api.js |
-| Nhận Email/Password | backend controller/LuanLHCE191099_AuthController.java |
-| Xác minh tài khoản | backend service/LuanLHCE191099_AuthService.java |
-| Tạo token | backend security/LuanLHCE191099_JwtService.java |
+## 2. Mở ứng dụng
 
-Khi request sau gửi lên, JwtFilter kiểm tra chữ ký/hạn dùng/issuer, nạp lại người dùng rồi đặt Authentication vào SecurityContext. SecurityConfig và @PreAuthorize quyết định endpoint nào được gọi.
+Backend chạy `LuanLHCE191099_Application.java`, đọc cấu hình, mở DataSource, tạo Spring beans và JPA mappings. `LuanLHCE191099_SeedData.java` tạo account/category/news mẫu khi bảng account chưa có dữ liệu.
 
-## 3. Đọc danh sách và tìm kiếm
+Frontend: `index.html` -> `LuanLHCE191099_main.jsx` -> `LuanLHCE191099_App.jsx`. App đặt Router và AuthProvider quanh giao diện. AppLayout ghép Header và Outlet. Đường dẫn `/` chờ khôi phục phiên rồi chuyển đến Login hoặc màn quản lý theo role; `/news` là bảng tin Active cho khách.
+
+AuthProvider luôn gọi `/auth/me` khi tải ứng dụng. Nếu trình duyệt còn cookie phiên hợp lệ, backend trả user; nếu chưa đăng nhập thì nhận 401 và hiện giao diện khách.
+
+## 3. Đăng nhập
 
 ```text
-Page được Router chọn
--> useApiList(endpoint + '?q=...')
--> Axios GET kèm token nếu có
--> Controller -> Service -> Repository -> SQL Server
--> Service chuyển Entity thành Response DTO trong transaction
--> JSON response -> state của hook -> JSX map thành bảng/card
+LoginPage.handleLogin
+-> AuthProvider.login(email, password)
+-> Axios POST /api/auth/login
+-> AuthController.login
+-> AuthService.authenticate
+-> AccountRepository tìm email + PasswordEncoder kiểm tra BCrypt
+-> AuthController lưu SecurityContext vào HttpSession
+-> response { user } + cookie A2SESSION
+-> AuthProvider cập nhật React state
+-> Router mở màn hình theo role
 ```
 
-`LuanLHCE191099_useApiList.js` hủy request cũ khi đổi từ khóa/page để tránh response cũ ghi đè kết quả mới. Entity dùng getter để đọc quan hệ Hibernate; không trả Entity trực tiếp ra JSON.
+Mở file theo thứ tự:
 
-## 4. CRUD cơ bản
+| Bước                                           | File                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| Form và sự kiện submit                         | `frontend/src/pages/LuanLHCE191099_LoginPage.jsx`           |
+| Lưu user trong state, khôi phục phiên, logout  | `frontend/src/context/LuanLHCE191099_AuthContext.jsx`       |
+| Gửi HTTP cùng cookie, lấy CSRF cho request ghi | `frontend/src/services/LuanLHCE191099_api.js`               |
+| Nhận login và lưu phiên                        | `backend/.../controller/LuanLHCE191099_AuthController.java` |
+| Tìm account và kiểm tra mật khẩu               | `backend/.../service/LuanLHCE191099_AuthService.java`       |
+| Thiết lập session, CSRF và logout              | `backend/.../config/LuanLHCE191099_SecurityConfig.java`     |
 
-Mở `frontend/src/LuanLHCE191099_CrudPage.jsx`:
+`request.changeSessionId()` đổi mã phiên sau khi đăng nhập thành công. `saveAuthentication()` lưu danh tính/quyền vào SecurityContextRepository. Cookie HttpOnly do trình duyệt quản lý, JavaScript không cần đọc nó.
 
-1. Nút Add gọi open() để tạo bản nháp từ các field.
-2. FormFields nối value/onChange với state form.
-3. Submit kiểm tra HTML input rồi POST/PUT JSON tới API.
-4. @Valid kiểm tra request DTO ở backend. Service kiểm tra quy tắc nghiệp vụ trong transaction.
-5. Repository lưu dữ liệu, Service trả DTO; frontend đóng popup và reload danh sách.
-6. Edit lấy id dòng làm editingId; payload được chọn theo các field của form, không gửi nguyên response object.
-7. Delete mở xác nhận trước. API thành công thì refresh; lỗi ràng buộc hiện trong hộp xác nhận để người dùng hiểu vì sao chưa xóa.
+Các request tiếp theo tự gửi cookie. Spring Security đọc session để biết ai đang gọi. `@AuthenticationPrincipal` lấy user đó vào tham số controller; `@PreAuthorize` kiểm tra role.
 
-API mới là nơi lưu dữ liệu chính. State React giữ dữ liệu để hiển thị; sessionStorage chỉ giữ token đăng nhập.
-
-## 5. Theo dõi một Category và News
+## 4. Danh sách Account và Search
 
 ```text
-CategoryPage -> CrudPage -> POST /api/categories
--> CategoryController -> CategoryService -> CategoryRepository
--> bảng Category -> response -> reload UI
+AccountManagement khai báo endpoint /accounts
+-> CrudPage + useApiList gửi GET /api/accounts?q=...
+-> AccountController.getAccounts
+-> q rỗng: AccountService.getAllAccounts
+-> có từ khóa: AccountService.searchAccounts
+-> AccountRepository.findAll(Sort.by("id"))
+-> vòng lặp chọn account, toResponse(account) tạo DTO
+-> JSON -> hook cập nhật state -> bảng React render lại
 ```
 
-CategoryService kiểm tra parentId tồn tại và không tạo chu trình cha/con. Khi xóa, service kiểm tra News tham chiếu trước khi gọi repository.delete.
+| HTTP request                | Hàm service                        |
+| --------------------------- | ---------------------------------- |
+| GET `/api/accounts`         | `getAllAccounts()`                 |
+| GET `/api/accounts?q=luan`  | `searchAccounts(q)`                |
+| GET `/api/accounts/{id}`    | `getAccountById(id)`               |
+| POST `/api/accounts`        | `createAccount(input)`             |
+| PUT `/api/accounts/{id}`    | `updateAccount(id, input)`         |
+| DELETE `/api/accounts/{id}` | `deleteAccount(id, currentUserId)` |
 
-NewsPage đọc Categories để tạo dropdown. Tags được nhập mỗi dòng dạng `name | note`, rồi đổi thành mảng object khi Save.
+Tìm kiếm hiện lọc trong Java sau khi đọc dữ liệu, chưa phân trang. AccountResponse chỉ có id/name/email/role. Mỗi DTO có file riêng dưới `backend/src/main/java/fu/edu/sba301/a2/dto/`.
 
-```text
-NewsPage -> POST /api/news
--> NewsController lấy actor từ token
--> NewsService đọc Category, gán createdBy và createdDate
--> tạo NewsArticle cùng Tags/NewsTag trong một transaction
--> trả NewsResponse có categoryName, author và tags
-```
+## 5. Thêm, sửa và xóa
 
-Khi sửa News, createdBy giữ nguyên; updatedBy và modifiedDate nhận người/thời điểm sửa. Khách chỉ gọi `/api/public/news`, service lọc status=1. Staff gọi `/api/news/history`, author được lấy từ token nên không thể gửi một authorId khác để xem lịch sử riêng của người khác.
+Mở `frontend/src/components/Common/LuanLHCE191099_CrudPage.jsx`:
 
-## 6. Account và Profile
+1. `openCreateModal()` tạo form từ giá trị mặc định. `openEditModal(record)` lấy giá trị từ dòng được chọn.
+2. FormFields.updateField tạo object mới khi input thay đổi rồi gọi setter của parent.
+3. `handleSave()` ngăn submit tải lại trang, đổi trường numeric thành number và tạo request body.
+4. Axios lấy CSRF rồi gửi POST khi tạo hoặc PUT khi sửa. Backend dùng `@Valid` kiểm tra DTO và service kiểm tra nghiệp vụ.
+5. Repository lưu thay đổi trong transaction. API thành công thì đóng popup và đọc lại danh sách.
+6. `openDeleteModal(record)` chỉ mở xác nhận; `handleDelete()` mới gửi DELETE.
+7. Nếu server trả 409 vì dữ liệu đang dùng, giữ popup để hiển thị lý do.
 
-AccountPage dùng /api/accounts; backend chỉ cho ADMIN. AccountService kiểm tra email trùng, hash password và chặn xóa tài khoản đã tạo News.
+`getAllAccounts`, `searchAccounts`, `createAccount`, `updateAccount`, `deleteAccount` được tách rõ trong AccountService. `applyInput` dùng chung validation/email/password; `toResponse` chuyển Entity thành DTO.
 
-ProfilePage dùng /api/profile; backend lấy accountId từ principal hiện tại. ProfileInput không có role, nên gửi thêm role bị từ chối. Đổi hồ sơ xong frontend gọi /auth/me để cập nhật tên trên menu.
+## 6. Category và News
 
-## 7. Cách tự lần theo code
+CategoryManagement đọc Categories để dựng lựa chọn parent. CategoryService đi lên chuỗi parent để ngăn chu trình; trước khi xóa kiểm tra News và Category con đang tham chiếu.
 
-Chọn một thao tác rồi trả lời lần lượt: sự kiện bắt đầu ở đâu -> handler nào nhận -> request gì được gửi -> Controller nào nhận -> Service kiểm tra gì -> Repository đọc/ghi bảng nào -> response gì về -> state/UI đổi ra sao.
+NewsManagement nhập tags dạng từng dòng `name | note`. `prepareRequest()` chuyển thành mảng object gửi server; `mapRecordToForm()` chuyển lại thành text khi mở Edit.
 
-Backend có 3 tầng chính Controller -> Service -> Repository. DTO, Entity và Security hỗ trợ các tầng đó; chúng không phải các màn hình frontend.
+NewsController lấy currentUserId từ principal trong session. NewsService.createNews gán tác giả/thời gian ở server và lưu article/tags cùng transaction. Update giữ tác giả gốc, chỉ cập nhật người sửa/thời gian sửa.
 
-Khi gặp lỗi, xem request trong DevTools Network trước: URL, method, payload, status và message. Sau đó mở đúng service liên quan. Trong SQL Server, chạy SELECT ở database/LuanLHCE191099_verification.sql để xác nhận dữ liệu đã lưu.
+PublicController gọi `getPublicNews`/`getPublicNewsById` để chỉ trả tin Active. History lấy author ID từ người đang đăng nhập, không nhận author ID tùy ý từ trình duyệt.
+
+## 7. Profile, F5 và Sign out
+
+ProfilePage gọi `/api/profile` để đọc/sửa account của chính Staff. ProfileInput không có role. Sau khi lưu, `refresh()` gọi `/auth/me` để cập nhật user trên menu và trong session.
+
+F5 làm React state khởi tạo lại, nhưng cookie phiên vẫn còn: AuthProvider gọi `/auth/me` để khôi phục user. Phiên hết hạn sau 30 phút không hoạt động.
+
+Sign out gọi `/api/auth/logout`. Spring invalidates session, xóa cookie A2SESSION; frontend mới xóa user khỏi state. Chỉ thay đổi state ở frontend sẽ chưa kết thúc phiên backend.
+
+## 8. CSRF và cách kiểm tra lỗi
+
+Với cookie session, Spring yêu cầu giá trị CSRF cho POST/PUT/DELETE. API client tự lấy từ `/auth/csrf` và gửi qua `X-CSRF-TOKEN`; người dùng chỉ thao tác form bình thường. Postman collection cũng tự thực hiện bước này và giữ cookie.
+
+Khi gặp lỗi, xem DevTools Network: URL, HTTP method, body, cookie/header, status và message. Sau đó mở đúng controller/service. Chạy SELECT trong `database/LuanLHCE191099_verification.sql` để kiểm tra dữ liệu đã lưu.
+
+Chạy `npm run format` từ frontend trước khi bàn giao thay đổi; `npm run format:check` kiểm tra quy tắc định dạng.
