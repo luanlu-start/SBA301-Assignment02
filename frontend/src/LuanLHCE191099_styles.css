@@ -1,28 +1,36 @@
+/* Global colors and typography supplement Bootstrap; importing this file applies the rules to the app. */
 :root {
   color: #243044;
   background: #f5f7fa;
   font-synthesis: none;
 }
+
 body {
   margin: 0;
   background: #f5f7fa;
   color: #243044;
 }
+
 h1 {
   font-size: 1.9rem;
   font-weight: 650;
   letter-spacing: -0.025em;
 }
+
 h2 {
   font-size: 1.35rem;
 }
+
 .site-nav {
   min-height: 72px;
 }
+
 .site-brand {
   font-weight: 750;
   letter-spacing: -0.025em;
 }
+
+/* Flexbox places the title and Add button at opposite ends of the page heading. */
 .page-heading {
   display: flex;
   align-items: center;
@@ -30,12 +38,14 @@ h2 {
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+
 .table-shell {
   background: white;
   border: 1px solid #e1e6ed;
   border-radius: 8px;
   overflow: hidden;
 }
+
 .table th {
   background: #eef2f7;
   color: #37465d;
@@ -43,14 +53,18 @@ h2 {
   white-space: nowrap;
   padding: 1rem;
 }
+
+/* Allow long article titles/content to wrap rather than widening the table indefinitely. */
 .table td {
   padding: 1rem;
   max-width: 320px;
   overflow-wrap: anywhere;
 }
+
 .search-box {
   max-width: 420px;
 }
+
 .profile-shell {
   max-width: 650px;
   background: white;
@@ -58,60 +72,33 @@ h2 {
   border: 1px solid #e1e6ed;
   border-radius: 8px;
 }
+
 .login-shell {
   max-width: 460px;
   margin: 2rem auto;
   border-color: #e1e6ed;
 }
-.public-intro {
-  padding: 2.5rem 0;
-  border-bottom: 1px solid #dce3eb;
-  margin-bottom: 2rem;
-}
-.public-intro h1 {
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  max-width: 760px;
-}
-.public-intro p {
-  max-width: 650px;
-  color: #617087;
-}
+
+/* Preserve article line breaks and spaces without inserting HTML into the page. */
 .content-text {
   white-space: pre-wrap;
   line-height: 1.8;
 }
-.news-card {
-  border-color: #e1e6ed;
-  height: 100%;
-}
-.news-card .card-body {
-  padding: 1.5rem;
-}
-.room-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #215c4a;
-  background: #eef5f0;
-  padding: 1.3rem;
-}
-.booking-panel {
-  position: sticky;
-  top: 1rem;
-}
-.history-detail {
-  font-size: 0.9rem;
-  line-height: 1.7;
-}
+
 .form-text {
   display: block;
 }
+
+/* Compact spacing below the Bootstrap md breakpoint; table responsiveness still allows horizontal scrolling. */
 @media (max-width: 767px) {
   .page-heading {
     align-items: flex-start;
   }
+
   .profile-shell {
     padding: 1.25rem;
   }
+
   .table th,
   .table td {
     padding: 0.65rem;

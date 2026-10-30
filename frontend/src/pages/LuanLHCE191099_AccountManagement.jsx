@@ -1,4 +1,7 @@
-import CrudPage from './LuanLHCE191099_CrudPage.jsx';
+import CrudPage from '../components/Common/LuanLHCE191099_CrudPage.jsx';
+
+// Account-specific form metadata used by CrudPage and FormFields.
+// role is converted to a number before sending: Admin=1 and Staff=2. Password is never a table column.
 const fields = [
   { name: 'name', label: 'Name', required: true, maxLength: 100 },
   { name: 'email', label: 'Email', type: 'email', required: true, maxLength: 150 },
@@ -28,7 +31,9 @@ const columns = [
   { key: 'email', label: 'Email' },
   { key: 'role', label: 'Role', render: (value) => (value === 1 ? 'Admin' : 'Staff') },
 ];
-export default function AccountPage() {
+// Compose the shared CRUD component for /api/accounts; new accounts default to Staff.
+// Backend AccountController permits only ADMIN, and AccountService enforces deletion restrictions.
+export default function AccountManagement() {
   return (
     <CrudPage
       title="Account management"

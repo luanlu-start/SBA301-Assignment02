@@ -1,1 +1,9 @@
-{"plugins":["react","oxc"],"rules":{"react/rules-of-hooks":"error"}}
+{
+  "plugins": ["react", "oxc"],
+  "rules": {
+    "react/rules-of-hooks": "error"
+  },
+  "env": {
+    "browser": true
+  }
+}

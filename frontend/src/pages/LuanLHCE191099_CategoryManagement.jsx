@@ -1,6 +1,10 @@
 import { Alert } from 'react-bootstrap';
-import CrudPage, { activeOptions, statusBadge } from './LuanLHCE191099_CrudPage.jsx';
-import useApiList from './LuanLHCE191099_useApiList.js';
+import CrudPage, {
+  activeOptions,
+  statusBadge,
+} from '../components/Common/LuanLHCE191099_CrudPage.jsx';
+import useApiList from '../hooks/LuanLHCE191099_useApiList.js';
+
 const columns = [
   { key: 'id', label: 'ID' },
   { key: 'name', label: 'Name' },
@@ -8,7 +12,10 @@ const columns = [
   { key: 'parentName', label: 'Parent' },
   { key: 'status', label: 'Status', render: statusBadge },
 ];
-export default function CategoryPage() {
+// Load categories separately to supply parent-category options, then reuse CrudPage for the table.
+// The backend rejects a parent cycle and deletion of a category used by news or child categories.
+// onChanged refreshes the options after successful CRUD so new parents can be selected immediately.
+export default function CategoryManagement() {
   const categories = useApiList('/categories');
   const fields = [
     { name: 'name', label: 'Name', required: true, maxLength: 100 },
@@ -19,7 +26,7 @@ export default function CategoryPage() {
       type: 'select',
       optional: true,
       numeric: true,
-      options: categories.data.map((c) => ({ value: c.id, label: c.name })),
+      options: categories.data.map((category) => ({ value: category.id, label: category.name })),
     },
     {
       name: 'status',

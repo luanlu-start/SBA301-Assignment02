@@ -1,137 +1,66 @@
-import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
-import { Button, Container, Nav, Navbar } from 'react-bootstrap';
-import { AuthProvider, RequireRole, useAuth } from './LuanLHCE191099_Auth.jsx';
-import LoginPage from './LuanLHCE191099_LoginPage.jsx';
-import PublicNews from './LuanLHCE191099_PublicNews.jsx';
-import AccountPage from './LuanLHCE191099_AccountPage.jsx';
-import CategoryPage from './LuanLHCE191099_CategoryPage.jsx';
-import NewsPage, { newsColumns } from './LuanLHCE191099_NewsPage.jsx';
-import CrudPage from './LuanLHCE191099_CrudPage.jsx';
-import ProfilePage from './LuanLHCE191099_ProfilePage.jsx';
+import { Spinner } from 'react-bootstrap';
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/LuanLHCE191099_AuthContext.jsx';
+import ProtectedRoute from './components/LuanLHCE191099_ProtectedRoute.jsx';
+import AppLayout from './components/Layout/LuanLHCE191099_AppLayout.jsx';
+import AccountManagement from './pages/LuanLHCE191099_AccountManagement.jsx';
+import CategoryManagement from './pages/LuanLHCE191099_CategoryManagement.jsx';
+import NewsManagement from './pages/LuanLHCE191099_NewsManagement.jsx';
+import LoginPage from './pages/LuanLHCE191099_LoginPage.jsx';
+import PublicNewsPage from './pages/LuanLHCE191099_PublicNewsPage.jsx';
+import ProfilePage from './pages/LuanLHCE191099_ProfilePage.jsx';
+import HistoryPage from './pages/LuanLHCE191099_HistoryPage.jsx';
 import './LuanLHCE191099_styles.css';
-const profileFields = [
-  { name: 'name', label: 'Name', required: true, maxLength: 100 },
-  { name: 'email', label: 'Email', type: 'email', required: true, maxLength: 150 },
-  {
-    name: 'password',
-    label: 'New password',
-    type: 'password',
-    maxLength: 100,
-    help: 'Leave blank to keep the current password.',
-  },
-];
-function Shell() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  return (
-    <>
-      <Navbar bg="dark" variant="dark" expand="lg" className="site-nav">
-        <Container>
-          <Navbar.Brand as={Link} to="/" className="site-brand">
-            FU / NEWS
-          </Navbar.Brand>
-          <Navbar.Toggle aria-controls="site-menu" />
-          <Navbar.Collapse id="site-menu">
-            <Nav className="me-auto">
-              <Nav.Link as={NavLink} to="/" end>
-                Published news
-              </Nav.Link>
-              {user?.role === 'ADMIN' && (
-                <Nav.Link as={NavLink} to="/manage/accounts">
-                  Accounts
-                </Nav.Link>
-              )}
-              {user?.role === 'STAFF' && (
-                <>
-                  <Nav.Link as={NavLink} to="/manage/categories">
-                    Categories
-                  </Nav.Link>
-                  <Nav.Link as={NavLink} to="/manage/news">
-                    News
-                  </Nav.Link>
-                  <Nav.Link as={NavLink} to="/history">
-                    My news history
-                  </Nav.Link>
-                  <Nav.Link as={NavLink} to="/profile">
-                    My profile
-                  </Nav.Link>
-                </>
-              )}
-            </Nav>
-            {user ? (
-              <div className="d-flex gap-3 align-items-center text-white">
-                <small>{user.name}</small>
-                <Button
-                  size="sm"
-                  variant="outline-light"
-                  onClick={() => {
-                    logout();
-                    navigate('/');
-                  }}
-                >
-                  Sign out
-                </Button>
-              </div>
-            ) : (
-              <Button as={Link} to="/login" variant="outline-light" size="sm">
-                Sign in
-              </Button>
-            )}
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-      <Container className="py-4">
-        <Routes>
-          <Route path="/" element={<PublicNews />} />
-          <Route
-            path="/login"
-            element={
-              <LoginPage destinations={{ ADMIN: '/manage/accounts', STAFF: '/manage/news' }} />
-            }
-          />
-          <Route element={<RequireRole roles={['ADMIN']} />}>
-            <Route path="/manage/accounts" element={<AccountPage />} />
-          </Route>
-          <Route element={<RequireRole roles={['STAFF']} />}>
-            <Route path="/manage/categories" element={<CategoryPage />} />
-            <Route path="/manage/news" element={<NewsPage />} />
-            <Route
-              path="/history"
-              element={
-                <CrudPage
-                  title="My news history"
-                  endpoint="/news/history"
-                  columns={newsColumns}
-                  readOnly
-                />
-              }
-            />
-            <Route
-              path="/profile"
-              element={<ProfilePage endpoint="/profile" fields={profileFields} />}
-            />
-          </Route>
-          <Route
-            path="*"
-            element={
-              <p>
-                Page not found. <Link to="/">Return to news</Link>
-              </p>
-            }
-          />
-        </Routes>
-      </Container>
-      <footer className="container py-4 text-secondary small">
-        FUNewsManagementSystem · Assignment 02 · LuanLH / CE191099
-      </footer>
-    </>
-  );
+
+// The entry route opens login or the management screen for the restored role.
+function HomeRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return <Spinner animation="border" role="status" />;
+  }
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/manage/accounts" replace />;
+  }
+  if (user?.role === 'STAFF') {
+    return <Navigate to="/manage/news" replace />;
+  }
+  return <Navigate to="/login" replace />;
 }
+
+// Like Assignment 1, App owns routes and Layout owns the common frame.
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Shell />
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomeRedirect />} />
+            <Route path="/news" element={<PublicNewsPage />} />
+            <Route
+              path="/login"
+              element={
+                <LoginPage destinations={{ ADMIN: '/manage/accounts', STAFF: '/manage/news' }} />
+              }
+            />
+            <Route element={<ProtectedRoute roles={['ADMIN']} />}>
+              <Route path="/manage/accounts" element={<AccountManagement />} />
+            </Route>
+            <Route element={<ProtectedRoute roles={['STAFF']} />}>
+              <Route path="/manage/categories" element={<CategoryManagement />} />
+              <Route path="/manage/news" element={<NewsManagement />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
+            <Route
+              path="*"
+              element={
+                <p>
+                  Page not found. <Link to="/">Return home</Link>
+                </p>
+              }
+            />
+          </Route>
+        </Routes>
       </AuthProvider>
     </BrowserRouter>
   );
