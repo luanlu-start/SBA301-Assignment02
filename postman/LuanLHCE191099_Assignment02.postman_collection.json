@@ -1,22 +1,16 @@
 {
   "info": {
-    "_postman_id": "4843b091-6c5c-4267-814c-fc02440480af",
-    "name": "SBA301 Assignment 02 - LuanLH",
+    "name": "LuanLHCE191099 - Assignment 02 - Session login",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Run in order. Requests create temporary records and delete them at the end. Start the backend with the sample accounts from README."
+    "description": "Run requests in order. Postman automatically retains the A2SESSION cookie. The pre-request script obtains the CSRF value before writes. Test records are removed near the end."
+  },
+  "auth": {
+    "type": "noauth"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8082/api"
-    },
-    {
-      "key": "runId",
-      "value": ""
-    },
-    {
-      "key": "invalidToken",
-      "value": "invalid.jwt.token"
     }
   ],
   "event": [
@@ -25,12 +19,19 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "if (!pm.collectionVariables.get(\"runId\")) {",
-          "  pm.collectionVariables.set(\"runId\", String(Date.now()));",
-          "  const start = new Date(); start.setDate(start.getDate() + 90);",
-          "  const end = new Date(start); end.setDate(end.getDate() + 2);",
-          "  pm.collectionVariables.set(\"startDate\", start.toISOString().slice(0,10));",
-          "  pm.collectionVariables.set(\"endDate\", end.toISOString().slice(0,10));",
+          "if (!pm.collectionVariables.get('testRun')) {",
+          "  const run=String(Date.now());",
+          "  pm.collectionVariables.set('testRun',run);",
+          "  pm.collectionVariables.set('testEmail','session.test.'+run+'@example.com');",
+          "  pm.collectionVariables.set('testCategoryName','SessionCategory'+run);",
+          "  pm.collectionVariables.set('testNewsTitle','SessionNews'+run);",
+          "}",
+          "if (['POST','PUT','PATCH','DELETE'].includes(pm.request.method)) {",
+          "  pm.sendRequest({url:pm.variables.get('baseUrl')+'/auth/csrf',method:'GET'}, (error,response) => {",
+          "    if (error || response.code !== 200) throw new Error('Cannot obtain CSRF protection value');",
+          "    const csrf=response.json();",
+          "    pm.request.headers.upsert({key:csrf.headerName,value:csrf.token});",
+          "  });",
           "}"
         ]
       }
@@ -38,14 +39,11 @@
   ],
   "item": [
     {
-      "name": "01 Public active news",
+      "name": "Read published news",
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/public/news",
-        "auth": {
-          "type": "noauth"
-        }
+        "url": "{{baseUrl}}/public/news"
       },
       "event": [
         {
@@ -53,15 +51,34 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
-              "pm.test(\"Only active news\", () => pm.response.json().forEach(n => pm.expect(n.status).to.eql(1)));"
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Only active news\", () => pm.expect(pm.response.json().every(item => item.status === 1)).to.be.true);"
             ]
           }
         }
       ]
     },
     {
-      "name": "02 Admin login",
+      "name": "Private accounts require login",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/accounts"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Incorrect password",
       "request": {
         "method": "POST",
         "header": [
@@ -71,9 +88,39 @@
           }
         ],
         "url": "{{baseUrl}}/auth/login",
-        "auth": {
-          "type": "noauth"
-        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"staff@funews.local\",\n  \"password\": \"wrong\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sign in as Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"email\": \"admin@funews.local\",\n  \"password\": \"Admin@123\"\n}",
@@ -90,38 +137,47 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
-              "{",
-              "const assignmentResponse = pm.response.json();",
-              "pm.collectionVariables.set(\"adminToken\", assignmentResponse.token);",
-              "}",
-              ""
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Admin identity without login token\", () => { const body=pm.response.json(); pm.expect(body.user.role).to.eql(\"ADMIN\"); pm.expect(body).not.to.have.property(\"token\"); });"
             ]
           }
         }
       ]
     },
     {
-      "name": "03 Create test Staff",
+      "name": "Admin reads accounts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/accounts"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"No account passwords in response\", () => pm.expect(pm.response.json().every(item => !(\"password\" in item))).to.be.true);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create an account",
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          },
           {
             "key": "Content-Type",
             "value": "application/json"
           }
         ],
         "url": "{{baseUrl}}/accounts",
-        "auth": {
-          "type": "noauth"
-        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Postman Staff\",\n  \"email\": \"pm.staff.{{runId}}@example.com\",\n  \"password\": \"Postman@123\",\n  \"role\": 2\n}",
+          "raw": "{\n  \"name\": \"Postman Staff\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Postman@123\",\n  \"role\": 2\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -135,19 +191,177 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
-              "{",
-              "const assignmentResponse = pm.response.json();",
-              "pm.collectionVariables.set(\"staffId\", assignmentResponse.id);",
-              "}",
-              ""
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"accountId\",pm.response.json().id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "04 Staff login",
+      "name": "Edit the account",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{{accountId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Edited Postman Staff\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"\",\n  \"role\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search the account by email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/accounts?q={{testEmail}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"One matching account\", () => pm.expect(pm.response.json()).to.have.lengthOf(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject duplicate email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Staff\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Postman@123\",\n  \"role\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin cannot manage categories",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Remove the test account",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/accounts/{{accountId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Protect an account that created news",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/accounts/2"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sign out Admin",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/auth/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sign in as Staff",
       "request": {
         "method": "POST",
         "header": [
@@ -157,12 +371,9 @@
           }
         ],
         "url": "{{baseUrl}}/auth/login",
-        "auth": {
-          "type": "noauth"
-        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"pm.staff.{{runId}}@example.com\",\n  \"password\": \"Postman@123\"\n}",
+          "raw": "{\n  \"email\": \"staff@funews.local\",\n  \"password\": \"Staff@123\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -176,31 +387,19 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
-              "{",
-              "const assignmentResponse = pm.response.json();",
-              "pm.collectionVariables.set(\"staffToken\", assignmentResponse.token);",
-              "}",
-              ""
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Staff identity\", () => pm.expect(pm.response.json().user.role).to.eql(\"STAFF\"));"
             ]
           }
         }
       ]
     },
     {
-      "name": "05 Staff cannot manage accounts",
+      "name": "Staff cannot manage accounts",
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/accounts",
-        "auth": {
-          "type": "noauth"
-        }
+        "header": [],
+        "url": "{{baseUrl}}/accounts"
       },
       "event": [
         {
@@ -208,33 +407,26 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });"
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
             ]
           }
         }
       ]
     },
     {
-      "name": "06 Create category",
+      "name": "Create a category",
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          },
           {
             "key": "Content-Type",
             "value": "application/json"
           }
         ],
         "url": "{{baseUrl}}/categories",
-        "auth": {
-          "type": "noauth"
-        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"Postman category {{runId}}\",\n  \"description\": \"Collection verification\",\n  \"status\": 1\n}",
+          "raw": "{\n  \"name\": \"{{testCategoryName}}\",\n  \"description\": \"Postman session test\",\n  \"status\": 1\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -248,38 +440,80 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
-              "{",
-              "const assignmentResponse = pm.response.json();",
-              "pm.collectionVariables.set(\"categoryId\", assignmentResponse.id);",
-              "}",
-              ""
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"categoryId\",pm.response.json().id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "07 Create article with tags",
+      "name": "Edit the category",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories/{{categoryId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{testCategoryName}}\",\n  \"description\": \"Edited category\",\n  \"status\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search the category",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories?q={{testCategoryName}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"One matching category\", () => pm.expect(pm.response.json()).to.have.lengthOf(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create news with two tags",
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          },
           {
             "key": "Content-Type",
             "value": "application/json"
           }
         ],
         "url": "{{baseUrl}}/news",
-        "auth": {
-          "type": "noauth"
-        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Postman article {{runId}}\",\n  \"headline\": \"Collection example\",\n  \"content\": \"Created through Postman and stored in SQL Server.\",\n  \"source\": \"Postman collection\",\n  \"categoryId\": {{categoryId}},\n  \"status\": 1,\n  \"tags\": [\n    {\n      \"name\": \"postman\",\n      \"note\": \"API verification\"\n    },\n    {\n      \"name\": \"campus\",\n      \"note\": \"Campus life\"\n    }\n  ]\n}",
+          "raw": "{\n  \"title\": \"{{testNewsTitle}}\",\n  \"headline\": \"Session authentication test\",\n  \"content\": \"Created from Postman.\",\n  \"source\": \"Postman\",\n  \"categoryId\": {{categoryId}},\n  \"status\": 1,\n  \"tags\": [\n    {\n      \"name\": \"campus\",\n      \"note\": \"University life\"\n    },\n    {\n      \"name\": \"study\",\n      \"note\": \"Study news\"\n    }\n  ]\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -293,26 +527,20 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
-              "{",
-              "const assignmentResponse = pm.response.json();",
-              "pm.collectionVariables.set(\"newsId\", assignmentResponse.id);",
-              "}",
-              ""
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"newsId\",pm.response.json().id);",
+              "pm.test(\"Two tags saved\", () => pm.expect(pm.response.json().tags).to.have.lengthOf(2));"
             ]
           }
         }
       ]
     },
     {
-      "name": "08 Read public article",
+      "name": "Read published article",
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/public/news/{{newsId}}",
-        "auth": {
-          "type": "noauth"
-        }
+        "url": "{{baseUrl}}/public/news/{{newsId}}"
       },
       "event": [
         {
@@ -320,82 +548,18 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
-              "pm.test(\"Two tags\", () => pm.expect(pm.response.json().tags.length).to.eql(2));"
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
             ]
           }
         }
       ]
     },
     {
-      "name": "09 Search news",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/news?q=Postman",
-        "auth": {
-          "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "10 Own news history",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/news/history",
-        "auth": {
-          "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
-              "pm.test(\"Own articles only\", () => pm.response.json().forEach(n => pm.expect(n.createdById).to.eql(Number(pm.collectionVariables.get(\"staffId\")))));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "11 Cannot delete author",
+      "name": "Protect category used by news",
       "request": {
         "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/accounts/{{staffId}}",
-        "auth": {
-          "type": "noauth"
-        }
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
       },
       "event": [
         {
@@ -403,26 +567,18 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
             ]
           }
         }
       ]
     },
     {
-      "name": "12 Cannot delete used category",
+      "name": "Find article in own history",
       "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/categories/{{categoryId}}",
-        "auth": {
-          "type": "noauth"
-        }
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/news/history?q={{testNewsTitle}}"
       },
       "event": [
         {
@@ -430,33 +586,27 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Own article found\", () => pm.expect(pm.response.json()).to.have.lengthOf(1));"
             ]
           }
         }
       ]
     },
     {
-      "name": "13 Update article to inactive",
+      "name": "Make the article inactive",
       "request": {
         "method": "PUT",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          },
           {
             "key": "Content-Type",
             "value": "application/json"
           }
         ],
         "url": "{{baseUrl}}/news/{{newsId}}",
-        "auth": {
-          "type": "noauth"
-        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"Postman article {{runId}}\",\n  \"headline\": \"Collection example\",\n  \"content\": \"Created through Postman and stored in SQL Server.\",\n  \"source\": \"Postman collection\",\n  \"categoryId\": {{categoryId}},\n  \"status\": 0,\n  \"tags\": [\n    {\n      \"name\": \"postman\",\n      \"note\": \"API verification\"\n    },\n    {\n      \"name\": \"campus\",\n      \"note\": \"Campus life\"\n    }\n  ]\n}",
+          "raw": "{\n  \"title\": \"{{testNewsTitle}}\",\n  \"headline\": \"Session authentication test\",\n  \"content\": \"Created from Postman.\",\n  \"source\": \"Postman\",\n  \"categoryId\": {{categoryId}},\n  \"status\": 0,\n  \"tags\": [\n    {\n      \"name\": \"campus\",\n      \"note\": \"University life\"\n    },\n    {\n      \"name\": \"study\",\n      \"note\": \"Study news\"\n    }\n  ]\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -470,21 +620,18 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
             ]
           }
         }
       ]
     },
     {
-      "name": "14 Inactive article is not public",
+      "name": "Inactive article is hidden publicly",
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/public/news/{{newsId}}",
-        "auth": {
-          "type": "noauth"
-        }
+        "url": "{{baseUrl}}/public/news/{{newsId}}"
       },
       "event": [
         {
@@ -492,39 +639,18 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });"
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
             ]
           }
         }
       ]
     },
     {
-      "name": "15 Update category",
+      "name": "Remove the test article",
       "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/categories/{{categoryId}}",
-        "auth": {
-          "type": "noauth"
-        },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Postman category edited {{runId}}\",\n  \"description\": \"Edited description\",\n  \"status\": 1\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        }
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/news/{{newsId}}"
       },
       "event": [
         {
@@ -532,26 +658,56 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
             ]
           }
         }
       ]
     },
     {
-      "name": "16 Read own profile",
+      "name": "Remove the test category",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sign out Staff",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/auth/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signed-out session cannot read profile",
       "request": {
         "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/profile",
-        "auth": {
-          "type": "noauth"
-        }
+        "header": [],
+        "url": "{{baseUrl}}/auth/me"
       },
       "event": [
         {
@@ -559,88 +715,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "17 Delete test article",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/news/{{newsId}}",
-        "auth": {
-          "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "18 Delete test category",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{staffToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/categories/{{categoryId}}",
-        "auth": {
-          "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "19 Delete test Staff",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/accounts/{{staffId}}",
-        "auth": {
-          "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
             ]
           }
         }

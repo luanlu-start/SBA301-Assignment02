@@ -4,10 +4,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
+// Backend entry point. Spring scans this package and its children for components and JPA mappings.
+// Exclude the default generated-login setup because login uses the database accounts and a server session.
+// Startup reads configuration, builds the application context/DataSource and then runs SeedData.
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 public class LuanLHCE191099_Application {
 
-  public static void main(String[] args) {
-    SpringApplication.run(LuanLHCE191099_Application.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(LuanLHCE191099_Application.class, args);
+    }
 }
